@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>英語チャンク学習アプリ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 3rem;
+    gap: 1rem;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 480px;
+  }
+  .tab {
+    padding: 6px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #fff;
+    color: #555;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: #1a73e8;
+    color: #fff;
+    border-color: #1a73e8;
+  }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+  }
+  #progress-text {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+  }
+  #progress-track {
+    flex: 1;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #progress-fill {
+    height: 100%;
+    background: #1a73e8;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 400px;
+  }
+  .stat {
+    flex: 1;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat-num {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+  }
+  #shuffle-btn {
+    padding: 6px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #fff;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #shuffle-btn.on {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #a5d6a7;
+  }
+  #card-scene {
+    width: 100%;
+    max-width: 400px;
+    height: 230px;
+    perspective: 1000px;
+    cursor: pointer;
+  }
+  #card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    text-align: center;
+    gap: 12px;
+  }
+  #card-back {
+    transform: rotateY(180deg);
+  }
+  #text-ja {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+  #tap-hint {
+    font-size: 13px;
+    color: #bbb;
+  }
+  #text-en {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a73e8;
+    line-height: 1.3;
+  }
+  #text-ex {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+    font-style: italic;
+  }
+  #speak-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  #speak-btn:hover { background: #f5f5f5; }
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .action-buttons.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .btn-again {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #ffcdd2;
+    border-radius: 12px;
+    background: #ffebee;
+    color: #c62828;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-again:hover { background: #ffcdd2; }
+  .btn-good {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid #c8e6c9;
+    border-radius: 12px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-good:hover { background: #c8e6c9; }
+  #done-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 2rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 400px;
+  }
+  #done-screen.visible { display: flex; }
+  .done-icon { font-size: 40px; }
+  .done-title { font-size: 20px; font-weight: 700; color: #1a1a1a; }
+  .done-sub { font-size: 14px; color: #666; line-height: 1.8; }
+  #restart-btn {
+    padding: 12px 28px;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  #restart-btn:hover { background: #f5f5f5; }
+</style>
+</head>
+<body>
+
+<h1>英語チャンク学習</h1>
+
+<div class="tab-bar" id="tab-bar"></div>
+
+<div class="top-bar">
+  <span id="progress-text">1 / 20</span>
+  <div id="progress-track"><div id="progress-fill" style="width:5%"></div></div>
+  <button id="shuffle-btn">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+      <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+    </svg>
+    シャッフル
+  </button>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-num" id="stat-done">0</div><div class="stat-label">覚えた</div></div>
+  <div class="stat"><div class="stat-num" id="stat-again">0</div><div class="stat-label">もう一度</div></div>
+  <div class="stat"><div class="stat-num" id="stat-left">20</div><div class="stat-label">残り</div></div>
+</div>
+
+<div id="card-scene">
+  <div id="card-inner">
+    <div class="card-face" id="card-front">
+      <div id="text-ja"></div>
+      <div id="tap-hint">👆 タップして答えを見る</div>
+    </div>
+    <div class="card-face" id="card-back">
+      <div id="text-en"></div>
+      <div id="text-ex"></div>
+      <button id="speak-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        もう一度読む
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="action-buttons" id="action-buttons">
+  <button class="btn-again" id="btn-again">😅 もう一度</button>
+  <button class="btn-good" id="btn-good">✅ 覚えた！</button>
+</div>
+
+<div id="done-screen">
+  <div class="done-icon">🎉</div>
+  <div class="done-title" id="done-title"></div>
+  <div class="done-sub" id="done-sub"></div>
+  <button id="restart-btn">🔄 もう一度このカテゴリを復習する</button>
+</div>
+
+<script>
+const ALL_CHUNKS = {
+  "相槌・リアクション": [
+    { chunk: "That makes sense", meaning: "なるほど、それは分かります", example_en: "That makes sense. I'll adjust the schedule accordingly." },
+    { chunk: "Totally agree", meaning: "完全に同意します", example_en: "Totally agree. We should focus on the key accounts first." },
+    { chunk: "Fair enough", meaning: "まあそうですね・納得です", example_en: "Fair enough. Let's go with your approach then." },
+    { chunk: "Good point", meaning: "良い指摘ですね", example_en: "Good point. I hadn't thought about the shipping cost." },
+    { chunk: "Sounds good", meaning: "いいですね・了解です", example_en: "Sounds good. I'll send you the updated proposal by Friday." },
+    { chunk: "No worries", meaning: "大丈夫ですよ・気にしないで", example_en: "No worries. We can reschedule the meeting anytime." },
+    { chunk: "I see what you mean", meaning: "おっしゃる意味が分かります", example_en: "I see what you mean. The margin is too tight at that price." },
+    { chunk: "Exactly right", meaning: "その通りです", example_en: "Exactly right. That's the issue we've been facing." },
+    { chunk: "Makes total sense", meaning: "全く理にかなっています", example_en: "Makes total sense to launch in Q4 before the holidays." },
+    { chunk: "That's a great idea", meaning: "それは素晴らしいアイデアですね", example_en: "That's a great idea. Let's pitch it to the buyer next week." },
+    { chunk: "I couldn't agree more", meaning: "全くその通りだと思います", example_en: "I couldn't agree more. Customer service is our top priority." },
+    { chunk: "You have a point", meaning: "あなたの言う点はもっともです", example_en: "You have a point. We should reconsider the pricing strategy." },
+    { chunk: "That's interesting", meaning: "それは興味深いですね", example_en: "That's interesting. Tell me more about the new product line." },
+    { chunk: "Right, I got it", meaning: "はい、了解しました", example_en: "Right, I got it. I'll confirm the stock level by tomorrow." },
+    { chunk: "Absolutely", meaning: "もちろんです・全くその通り", example_en: "Absolutely. We'll make sure the demo units arrive on time." },
+    { chunk: "I know what you mean", meaning: "おっしゃっていること、よく分かります", example_en: "I know what you mean. The shelf space issue is frustrating." },
+    { chunk: "Tell me about it", meaning: "まったくですよね（共感）", example_en: "Tell me about it. The new regulations made everything harder." },
+    { chunk: "That works for me", meaning: "それで問題ありません", example_en: "That works for me. Let's set the meeting for Tuesday at 2 PM." },
+    { chunk: "Sure, why not", meaning: "もちろん、いいですよ", example_en: "Sure, why not. We can include the accessory bundle in the deal." },
+    { chunk: "Not at all", meaning: "全然構いません・とんでもない", example_en: "Not at all. Feel free to ask me anything about the product." }
+  ],
+  "依頼・提案・申し出": [
+    { chunk: "Could you please", meaning: "〜していただけますか", example_en: "Could you please send me the latest price list?" },
+    { chunk: "Would you mind", meaning: "〜していただけませんか（丁寧）", example_en: "Would you mind checking the stock availability for us?" },
+    { chunk: "Let me help you", meaning: "お手伝いします", example_en: "Let me help you find the right model for your customers." },
+    { chunk: "Why don't we", meaning: "〜しませんか（提案）", example_en: "Why don't we schedule a call to discuss the details?" },
+    { chunk: "How about this", meaning: "こういうのはどうでしょう", example_en: "How about this — we offer a trial period of 30 days?" },
+    { chunk: "What if we", meaning: "もし〜したらどうでしょう", example_en: "What if we split the shipping cost between us?" },
+    { chunk: "Let me know if", meaning: "もし〜なら教えてください", example_en: "Let me know if you need any additional information." },
+    { chunk: "Feel free to", meaning: "遠慮なく〜してください", example_en: "Feel free to contact me anytime with questions." },
+    { chunk: "I'd be happy to", meaning: "喜んで〜します", example_en: "I'd be happy to arrange a product demo for your team." },
+    { chunk: "Shall we go over", meaning: "〜を一緒に確認しましょうか", example_en: "Shall we go over the proposal before the meeting?" },
+    { chunk: "I suggest we", meaning: "〜することをお勧めします", example_en: "I suggest we increase the order quantity to get a better rate." },
+    { chunk: "How does that sound", meaning: "それはいかがでしょうか", example_en: "We can deliver by next Monday. How does that sound?" },
+    { chunk: "Leave it to me", meaning: "私に任せてください", example_en: "Leave it to me. I'll handle the coordination with the store." },
+    { chunk: "Can I ask you", meaning: "〜をお聞きしてもいいですか", example_en: "Can I ask you about your target price range?" },
+    { chunk: "Let's go ahead with", meaning: "〜で進めましょう", example_en: "Let's go ahead with the original plan for now." },
+    { chunk: "I recommend going with", meaning: "〜をお勧めします", example_en: "I recommend going with the bundle set for better value." },
+    { chunk: "Do you want me to", meaning: "〜しましょうか", example_en: "Do you want me to prepare a sample for the buyer meeting?" },
+    { chunk: "Allow me to explain", meaning: "説明させてください", example_en: "Allow me to explain how the markup structure works." },
+    { chunk: "Let's work together on", meaning: "〜を一緒に取り組みましょう", example_en: "Let's work together on the promotion plan for Q3." },
+    { chunk: "I'll take care of", meaning: "〜は私が対応します", example_en: "I'll take care of the follow-up with Yodobashi Camera." }
+  ],
+  "確認・交渉": [
+    { chunk: "Just to confirm", meaning: "念のため確認ですが", example_en: "Just to confirm, the delivery date is November 15th, right?" },
+    { chunk: "Let me double-check", meaning: "もう一度確認させてください", example_en: "Let me double-check the inventory before I give you a number." },
+    { chunk: "To be honest", meaning: "正直に言うと", example_en: "To be honest, the current price is a bit too high for our buyers." },
+    { chunk: "As I mentioned", meaning: "先ほど申し上げたように", example_en: "As I mentioned, the minimum order quantity is 50 units." },
+    { chunk: "That depends on", meaning: "それは〜次第です", example_en: "That depends on how quickly we can get approval from the buyer." },
+    { chunk: "In that case", meaning: "それならば・その場合は", example_en: "In that case, we can offer an additional 3% discount." },
+    { chunk: "Is that okay with you", meaning: "それでよろしいですか", example_en: "We'll ship next Monday. Is that okay with you?" },
+    { chunk: "Can we negotiate on", meaning: "〜について交渉できますか", example_en: "Can we negotiate on the lead time for this order?" },
+    { chunk: "I'll get back to you", meaning: "後ほどご連絡します", example_en: "I'll get back to you with the final pricing by end of day." },
+    { chunk: "Let's put that aside", meaning: "それはひとまず置いておきましょう", example_en: "Let's put that aside and focus on the launch date first." },
+    { chunk: "We need to discuss", meaning: "〜について話し合う必要があります", example_en: "We need to discuss the shelf allocation for the new models." },
+    { chunk: "That's not possible", meaning: "それは難しいです", example_en: "That's not possible within this timeline, unfortunately." },
+    { chunk: "I understand your concern", meaning: "ご懸念はよく分かります", example_en: "I understand your concern about the price point." },
+    { chunk: "We can work something out", meaning: "何か解決策を見つけられます", example_en: "Don't worry — we can work something out on the payment terms." },
+    { chunk: "Let me think about it", meaning: "少し考えさせてください", example_en: "Let me think about it and get back to you tomorrow." },
+    { chunk: "That's within our budget", meaning: "それは予算内です", example_en: "That's within our budget. Let's proceed with the order." },
+    { chunk: "Can you walk me through", meaning: "〜を順を追って説明してもらえますか", example_en: "Can you walk me through the new product specifications?" },
+    { chunk: "We're on the same page", meaning: "認識が一致しています", example_en: "Good — I think we're on the same page about the strategy." },
+    { chunk: "That's a deal", meaning: "それで決まりです", example_en: "That's a deal. I'll send the contract over this afternoon." },
+    { chunk: "Moving forward", meaning: "今後は・これからは", example_en: "Moving forward, please send all invoices directly to our team." }
+  ],
+  "説明・報告・対応": [
+    { chunk: "To make a long story short", meaning: "手短に言うと", example_en: "To make a long story short, the shipment got delayed by two weeks." },
+    { chunk: "The thing is", meaning: "実はですね・問題は", example_en: "The thing is, the buyer wants a lower price than we expected." },
+    { chunk: "Here's the situation", meaning: "状況はこうです", example_en: "Here's the situation — the stock ran out faster than we planned." },
+    { chunk: "As it turns out", meaning: "結果的には・判明したところによると", example_en: "As it turns out, the display model was the last unit in stock." },
+    { chunk: "It turned out that", meaning: "〜ということが分かりました", example_en: "It turned out that the price error was on our end." },
+    { chunk: "The reason is that", meaning: "理由は〜です", example_en: "The reason is that the factory is closed for the national holiday." },
+    { chunk: "What happened was", meaning: "何が起きたかというと", example_en: "What happened was the wrong SKU was entered in the system." },
+    { chunk: "I should mention that", meaning: "お伝えしておくべきことがあります", example_en: "I should mention that the promotion ends on the 31st." },
+    { chunk: "Just so you know", meaning: "念のためお伝えしますが", example_en: "Just so you know, the new model launches in two weeks." },
+    { chunk: "To give you an update", meaning: "状況をお伝えすると", example_en: "To give you an update, the shipment cleared customs this morning." },
+    { chunk: "We're looking into it", meaning: "現在調査中です", example_en: "We're looking into it and will update you by tomorrow." },
+    { chunk: "We're working on it", meaning: "対応中です", example_en: "We're working on it. The fix should be ready by end of week." },
+    { chunk: "It's under control", meaning: "対処済みです・問題ありません", example_en: "Don't worry — it's under control. The store has been notified." },
+    { chunk: "My apologies for", meaning: "〜についてお詫び申し上げます", example_en: "My apologies for the delay in getting back to you." },
+    { chunk: "We'll make sure that", meaning: "必ず〜するようにします", example_en: "We'll make sure that this doesn't happen again." },
+    { chunk: "Let me clarify", meaning: "明確にさせてください", example_en: "Let me clarify — the discount applies only to the bundle set." },
+    { chunk: "To sum up", meaning: "まとめると", example_en: "To sum up, we need three more weeks to fulfill the full order." },
+    { chunk: "Going forward", meaning: "今後は", example_en: "Going forward, all returns must go through the new process." },
+    { chunk: "As a result", meaning: "その結果", example_en: "As a result, sales at that store increased by 30% last month." },
+    { chunk: "That being said", meaning: "とはいえ・そうは言っても", example_en: "That being said, I think we should still try to meet the deadline." }
+  ],
+  "意見・締めくくり": [
+    { chunk: "In my opinion", meaning: "私の意見では", example_en: "In my opinion, the Amazfit GT5 is our strongest product this season." },
+    { chunk: "From my experience", meaning: "私の経験上", example_en: "From my experience, bundle deals always perform well at launch." },
+    { chunk: "If you ask me", meaning: "私に言わせれば", example_en: "If you ask me, we should push the smartwatch category harder." },
+    { chunk: "To be fair", meaning: "公平に言えば", example_en: "To be fair, the competitor's price is hard to beat right now." },
+    { chunk: "At the end of the day", meaning: "結局のところ", example_en: "At the end of the day, sell-through rate is what matters most." },
+    { chunk: "The bottom line is", meaning: "要するに・結論は", example_en: "The bottom line is we need to hit the target by end of quarter." },
+    { chunk: "All things considered", meaning: "全てを考慮すると", example_en: "All things considered, I think the launch was a success." },
+    { chunk: "Having said that", meaning: "そうは言っても", example_en: "Having said that, there's still room to improve our training." },
+    { chunk: "It's worth noting that", meaning: "〜は注目に値します", example_en: "It's worth noting that this model has the highest return rate." },
+    { chunk: "Don't get me wrong", meaning: "誤解しないでください", example_en: "Don't get me wrong — I think the product is great overall." },
+    { chunk: "Needless to say", meaning: "言うまでもなく", example_en: "Needless to say, customer satisfaction is our top priority." },
+    { chunk: "To tell the truth", meaning: "実を言うと", example_en: "To tell the truth, I wasn't expecting such strong sell-through numbers." },
+    { chunk: "Come to think of it", meaning: "よく考えてみると", example_en: "Come to think of it, we should add this to the staff training too." },
+    { chunk: "Either way", meaning: "どちらにしても・いずれにせよ", example_en: "Either way, we need a decision before the buyer meeting on Monday." },
+    { chunk: "That said", meaning: "とはいえ", example_en: "That said, I believe we can still reach the monthly target." },
+    { chunk: "I have to say", meaning: "正直に言わせてもらうと", example_en: "I have to say, the new packaging looks really professional." },
+    { chunk: "More importantly", meaning: "さらに重要なことに", example_en: "More importantly, the product passed all the safety certifications." },
+    { chunk: "Last but not least", meaning: "最後になりますが重要なこととして", example_en: "Last but not least, thank you all for your hard work this quarter." },
+    { chunk: "Let's wrap things up", meaning: "まとめに入りましょう", example_en: "Let's wrap things up — any final questions before we close?" },
+    { chunk: "Looking forward to", meaning: "〜を楽しみにしています", example_en: "Looking forward to working together on the next campaign." }
+  ]
+};
+
+const CATS = Object.keys(ALL_CHUNKS);
+let currentCat = CATS[0];
+let deck = [];
+let idx = 0;
+let isFlipped = false;
+let shuffleOn = false;
+let doneCount = 0;
+let againCount = 0;
+
+const cardInner = document.getElementById('card-inner');
+const textJa = document.getElementById('text-ja');
+const textEn = document.getElementById('text-en');
+const textEx = document.getElementById('text-ex');
+const actionButtons = document.getElementById('action-buttons');
+const progressText = document.getElementById('progress-text');
+const progressFill = document.getElementById('progress-fill');
+const statDone = document.getElementById('stat-done');
+const statAgain = document.getElementById('stat-again');
+const statLeft = document.getElementById('stat-left');
+const cardScene = document.getElementById('card-scene');
+const speakBtn = document.getElementById('speak-btn');
+const btnAgain = document.getElementById('btn-again');
+const btnGood = document.getElementById('btn-good');
+const shuffleBtn = document.getElementById('shuffle-btn');
+const doneScreen = document.getElementById('done-screen');
+const doneTitle = document.getElementById('done-title');
+const doneSub = document.getElementById('done-sub');
+const restartBtn = document.getElementById('restart-btn');
+const tabBar = document.getElementById('tab-bar');
+const statsRow = document.querySelector('.stats-row');
+
+function buildTabs() {
+  tabBar.innerHTML = '';
+  CATS.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (cat === currentCat ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => selectCat(cat);
+    tabBar.appendChild(btn);
+  });
+}
+
+function selectCat(cat) {
+  currentCat = cat;
+  buildTabs();
+  resetSession();
+}
+
+function resetSession() {
+  deck = [...ALL_CHUNKS[currentCat]];
+  if (shuffleOn) shuffle(deck);
+  idx = 0;
+  doneCount = 0;
+  againCount = 0;
+  doneScreen.style.display = 'none';
+  cardScene.style.display = '';
+  statsRow.style.display = '';
+  actionButtons.classList.remove('visible');
+  showFront();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function updateStats() {
+  progressText.textContent = `${Math.min(idx + 1, deck.length)} / ${deck.length}`;
+  progressFill.style.width = (Math.min(idx, deck.length) / deck.length * 100) + '%';
+  statDone.textContent = doneCount;
+  statAgain.textContent = againCount;
+  statLeft.textContent = idx < deck.length ? deck.length - idx - 1 : 0;
+}
+
+function showFront() {
+  if (idx >= deck.length) { showDone(); return; }
+  const d = deck[idx];
+  textJa.textContent = d.meaning;
+  isFlipped = false;
+  cardInner.classList.remove('flipped');
+  actionButtons.classList.remove('visible');
+  updateStats();
+}
+
+function showBack() {
+  const d = deck[idx];
+  textEn.textContent = d.chunk;
+  textEx.textContent = d.example_en;
+  isFlipped = true;
+  cardInner.classList.add('flipped');
+  actionButtons.classList.add('visible');
+  speak(d.chunk);
+  updateStats();
+}
+
+function showDone() {
+  cardScene.style.display = 'none';
+  actionButtons.classList.remove('visible');
+  statsRow.style.display = 'none';
+  progressFill.style.width = '100%';
+  progressText.textContent = `${deck.length} / ${deck.length}`;
+  doneTitle.textContent = `${currentCat} 完了！`;
+  doneSub.textContent = `覚えた: ${doneCount}個\nもう一度: ${againCount}個`;
+  doneScreen.style.display = 'flex';
+}
+
+function speak(text) {
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+cardScene.addEventListener('click', () => { if (!isFlipped) showBack(); });
+speakBtn.addEventListener('click', e => { e.stopPropagation(); speak(deck[idx].chunk); });
+
+btnAgain.addEventListener('click', () => { againCount++; idx++; showFront(); });
+btnGood.addEventListener('click', () => { doneCount++; idx++; showFront(); });
+
+shuffleBtn.addEventListener('click', () => {
+  shuffleOn = !shuffleOn;
+  shuffleBtn.classList.toggle('on', shuffleOn);
+  resetSession();
+});
+
+restartBtn.addEventListener('click', resetSession);
+
+buildTabs();
+resetSession();
+</script>
+</body>
+</html>
